@@ -1,0 +1,15 @@
+datasets
+torch
+torchdata
+transformers
+trl==1.14.2
+evaluate
+rouge_score
+loralib
+peft
+bitsandbytes>=0.46.1
+pandas
+numpy
+argparse
+tqdm
+peft
