@@ -1,9 +1,10 @@
+import os
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 from datasets import DatasetDict, load_dataset
 from trl import GRPOTrainer, GRPOConfig
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModelForSequenceClassification
 import time
 from peft import PeftModel
-import os
 import torch
 import rouge_score
 import evaluate
@@ -11,6 +12,14 @@ import tqdm
 import pandas as pd
 import numpy as np
 import json
+from rouge_score import rouge_scorer
+
+
+# 全局变量要写在这里
+steps = -1
+epoch = 1 # to be furthur tested on epoch = 2,3
+lr = 1e-5
+generations = 4
 
 
 def prepare_prompt(example):
@@ -99,16 +108,27 @@ def grpo(model,
          step,
          lr,
          epoch,
-         generations=2
+         generations
          ):
     grpo_config = GRPOConfig(
         output_dir = output_path,
+
+        # training hyperparameters
         max_steps = step,
-        learning_rate = lr,
         num_train_epochs = epoch,
-        num_generations = generations,
+
+        # optimization hyperparameters
+        learning_rate = lr,
+
+        # memory
         per_device_train_batch_size=1,
-        gradient_accumulation_steps=2,
+        gradient_accumulation_steps=4,
+        gradient_checkpointing=True,
+        dataloader_pin_memory=False,
+
+        # generate
+        num_generations = generations,
+        max_completion_length = 120
     )
     trainer = GRPOTrainer(
         model = model,
@@ -127,51 +147,69 @@ def grpo(model,
 def evaluate_toxicity(model, 
                       tokenizer, 
                       toxicity_evaluator, 
-                      dataset, 
-                      output_path):
+                      dataset):
     model.eval()
     device = next(model.parameters()).device
 
-    summary_list = []
+    score = rouge_scorer.RougeScorer(["rouge1", "rouge2", "rougeL"], use_stemmer=True)
+
+    results = []
+
     # Get response from ppo and base model.
-    for example in tqdm.tqdm(dataset["test"]):
+    for i, example in enumerate(tqdm.tqdm(dataset["test"])):
         inputs = tokenizer.apply_chat_template(example["prompt"], 
                                                    tokenize=True, 
                                                    add_generation_prompt=True,
                                                    return_tensors="pt",
                                                    return_dict=True).to(device) #建议 return_dict=True，这样才能 model.generate(**inputs)
+        prompt_len = inputs["input_ids"].shape[1]
+
         with torch.inference_mode():
             output = model.generate(
                     **inputs, 
+                    # 做generation需要加这些限制条件
+                    max_new_tokens=120,
+                    do_sample=False
                 )
-        prompt_len = inputs["input_ids"].shape[1]
+            
         # print(output)
         completion = output[0][prompt_len:]
         summary = tokenizer.decode(completion, skip_special_tokens=True)
         # print(summary)
         toxicity = toxicity_evaluator([summary])[0]
 
-        summary_list.append({
-            "Dialogue": example["prompt"][0]["content"],
+        reference_summary = example["summary"]
+
+        rouge = score.score(summary, 
+                            reference_summary)
+        
+        results.append({
+            "ID": i,
+            "Dialogue": example["dialogue"],
+            "Reference_summary": reference_summary,
             "Summary": summary,
             "Toxicity": toxicity,
+            "Rouge1": rouge["rouge1"].fmeasure,
+            "Rouge2": rouge["rouge2"].fmeasure,
+            "RougeL": rouge["rougeL"].fmeasure
         })
 
-    summary_list = pd.DataFrame(summary_list)
-    return summary_list
+    results = pd.DataFrame(results)
+
+    return results
 
 
 if __name__ == "__main__":
 
     dataset = load_dataset("knkarthick/dialogsum")
     dataset = DatasetDict({
-        "train":dataset["train"].shuffle(seed=42).select(range(125)),
-        "validation": dataset["validation"].shuffle(seed=42).select(range(25)),
+        "train":dataset["train"].shuffle(seed=42).select(range(500)),
+        "validation": dataset["validation"].shuffle(seed=42).select(range(50)),
         # "validation": dataset["validation"].shuffle(seed=42).select(range(25)),  
-        "test": dataset["test"].filter(lambda example, index: index % 100 == 0,with_indices=True)
+        "test": dataset["test"].filter(lambda example, index: index % 50 == 0,with_indices=True)
     })
     datasets = dataset.map(prepare_prompt)
-    datasets = datasets.select_columns(["prompt"])
+    datasets = datasets.select_columns(["prompt","dialogue","summary"])
     print(datasets)
 
     # reward model
@@ -183,12 +221,15 @@ if __name__ == "__main__":
     base_model = AutoModelForCausalLM.from_pretrained(base_model_name)
     model_tokenizer = AutoTokenizer.from_pretrained(base_model_name)
     model_tokenizer.padding_side = "left"
+
     if model_tokenizer.pad_token is None:
         model_tokenizer.pad_token = model_tokenizer.eos_token
-    adaptor_path = "/Users/xiaoningzhu/Documents/AI/course_2/project/peft-dialogue-summary-checkpoint-local-qwen2.5"
-    model = PeftModel.from_pretrained(base_model,
-                                      adaptor_path,
-                                      is_trainable=True)
+    adaptor_path = "/Users/xiaoningzhu/Documents/AI/course_2/project/runs/peft-dialogue-summary-checkpoint-local-qwen2.5"
+    model = PeftModel.from_pretrained(
+        base_model,
+        adaptor_path,
+        is_trainable=True
+    )
 
     print(print_number_of_trainable_model_parameters(model))
 
@@ -199,13 +240,19 @@ if __name__ == "__main__":
         model=model,
         tokenizer=model_tokenizer,
         toxicity_evaluator=toxicity.evaluate,
-        dataset=datasets,
-        output_path=output_path
+        dataset=datasets
     )
 
-    steps = -1
-    epoch = 1
-    lr = 1e-5
+    metrics_before = metrics_before.rename(
+        columns={
+            "Summary": "Summary_before",
+            "Toxicity": "Toxicity_before",
+            "Rouge1": "Rouge1_before",
+            "Rouge2": "Rouge2_before",
+            "RougeL": "RougeL_before",
+        }
+    )
+
 
     trainer = grpo(
         model=model,
@@ -213,44 +260,44 @@ if __name__ == "__main__":
         tokenizer=model_tokenizer,
         reward_funcs=toxicity.reward,
         output_path=output_path,
-        step=-1,
+        step=steps,
         epoch=epoch,
         lr=lr,
-        generations=2,
+        generations=generations,
     )
 
     metrics_after = evaluate_toxicity(
         model=trainer.model,
         tokenizer=model_tokenizer,
         toxicity_evaluator=toxicity.evaluate,
-        dataset=datasets,
-        output_path=output_path
+        dataset=datasets
     )
 
-    results = pd.merge(metrics_before, metrics_after, on=["Dialogue"], suffixes = ("_before", "_after"))
+    metrics_after = metrics_after.rename(
+        columns={
+            "Summary": "Summary_after",
+            "Toxicity": "Toxicity_after",
+            "Rouge1": "Rouge1_after",
+            "Rouge2": "Rouge2_after",
+            "RougeL": "RougeL_after",
+        }
+    )
+
+    results = pd.merge(metrics_before, metrics_after,drop(columns=["dialogue", "reference_summary"]), on=["ID"])
     results["toxicity_diff"] = (
         results["Toxicity_after"]
         - results["Toxicity_before"]
     )
 
-    # print(results)
-
     completion_path = (f"{output_path}/completion_results.json")
-
-    results.to_json(
-        completion_path,
-        orient="records",
-        force_ascii=False,
-        indent=2,
-    )
 
     run_info = {
         "base_model": base_model_name,
         "adapter_path": adaptor_path,
         "reward_model": toxicity_model_name,
-        "steps": step,
+        "epoch": epoch,
         "learning_rate": lr,
-        "num_generations": 2,
+        "num_generations": generations,
         "train_samples": len(datasets["train"]),
         "test_samples": len(datasets["test"]),
     }
