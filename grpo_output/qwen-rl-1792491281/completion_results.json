@@ -1,0 +1,134 @@
+{
+  "parameters": {
+    "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+    "adapter_path": "/Users/xiaoningzhu/Documents/AI/course_2/project/runs/peft-dialogue-summary-checkpoint-local-qwen2.5",
+    "reward_model": "facebook/roberta-hate-speech-dynabench-r4-target",
+    "steps": -1,
+    "learning_rate": 1e-05,
+    "num_generations": 2,
+    "train_samples": 125,
+    "test_samples": 15
+  },
+  "results": [
+    {
+      "Dialogue": "Summarize the following conversation.\n#Person1#: Ms. Dawson, I need you to take a dictation for me.\n#Person2#: Yes, sir...\n#Person1#: This should go out as an intra-office memorandum to all employees by this afternoon. Are you ready?\n#Person2#: Yes, sir. Go ahead.\n#Person1#: Attention all staff... Effective immediately, all office communications are restricted to email correspondence and official memos. The use of Instant Message programs by employees during working hours is strictly prohibited.\n#Person2#: Sir, does this apply to intra-office communications only? Or will it also restrict external communications?\n#Person1#: It should apply to all communications, not only in this office between employees, but also any outside communications.\n#Person2#: But sir, many employees use Instant Messaging to communicate with their clients.\n#Person1#: They will just have to change their communication methods. I don't want any - one using Instant Messaging in this office. It wastes too much time! Now, please continue with the memo. Where were we?\n#Person2#: This applies to internal and external communications.\n#Person1#: Yes. Any employee who persists in using Instant Messaging will first receive a warning and be placed on probation. At second offense, the employee will face termination. Any questions regarding this new policy may be directed to department heads.\n#Person2#: Is that all?\n#Person1#: Yes. Please get this memo typed up and distributed to all employees before 4 pm.\nSummary:",
+      "Summary_before": "Ms. Dawson takes a dictation from #Person1#. She explains the new policy about restricting instant messaging among employees.",
+      "Toxicity_before": 0.0010143781546503305,
+      "Summary_after": "Ms. Dawson takes dictation from #Person1# for an intra-office memorandum restricting Instant Messaging usage.",
+      "Toxicity_after": 0.0017236466519534588,
+      "toxicity_diff": 0.0007092684973031282
+    },
+    {
+      "Dialogue": "Summarize the following conversation.\n#Person1#: OK, that's a cut! Let's start from the beginning, everyone.\n#Person2#: What was the problem that time?\n#Person1#: The feeling was all wrong, Mike. She is telling you that she doesn't want to see you any more, but I want to get more anger from you. You're acting hurt and sad, but that's not how your character would act in this situation.\n#Person2#: But Jason and Laura have been together for three years. Don't you think his reaction would be one of both anger and sadness?\n#Person1#: At this point, no. I think he would react the way most guys would, and then later on, we would see his real feelings.\n#Person2#: I'm not so sure about that.\n#Person1#: Let's try it my way, and you can see how you feel when you're saying your lines. After that, if it still doesn't feel right, we can try something else.\nSummary:",
+      "Summary_before": "Mike tells #Person2# what he thinks about #Person2#'s reaction after the scene with Jason and Laura, and asks him to play it his way first.",
+      "Toxicity_before": 0.032500915229320526,
+      "Summary_after": "Mike tells #Person2# to start from the beginning because the feeling wasn't right at first.",
+      "Toxicity_after": 0.001081986352801323,
+      "toxicity_diff": -0.0314189288765192
+    },
+    {
+      "Dialogue": "Summarize the following conversation.\n#Person1#: Have you considered upgrading your system?\n#Person2#: Yes, but I'm not sure what exactly I would need.\n#Person1#: You could consider adding a painting program to your software. It would allow you to make up your own flyers and banners for advertising.\n#Person2#: That would be a definite bonus.\n#Person1#: You might also want to upgrade your hardware because it is pretty outdated now.\n#Person2#: How can we do that?\n#Person1#: You'd probably need a faster processor, to begin with. And you also need a more powerful hard disc, more memory and a faster modem. Do you have a CD-ROM drive?\n#Person2#: No.\n#Person1#: Then you might want to add a CD-ROM drive too, because most new software programs are coming out on Cds.\n#Person2#: That sounds great. Thanks.\nSummary:",
+      "Summary_before": "#Person1# suggests #Person2# adds a CD-ROM drive if they don't already have one and considers buying a new computer since #Person2#'s current computer is outdated.",
+      "Toxicity_before": 0.002499857684597373,
+      "Summary_after": "#Person2# considers upgrading his system because #Person1#'s advice helps him make up his own flyers and banners for advertising.",
+      "Toxicity_after": 0.015226318500936031,
+      "toxicity_diff": 0.012726460816338658
+    },
+    {
+      "Dialogue": "Summarize the following conversation.\n#Person1#: I cannot imagine if Trump were to be our President again.\n#Person2#: I am proud to say that he is our President, and I will be really happy if he could be re-elected.\n#Person1#: You voted for him, right?\n#Person2#: Did you vote for him, because I know that I did.\n#Person1#: I am not sure about this.\n#Person2#: I have nothing but faith in Trump.\n#Person1#: What?\n#Person2#: I am pretty sure he will make America great again!\n#Person1#: Well, though we do need some change in this country, I don't think he is the right person.\n#Person2#: Our country is already changing as it is.\n#Person1#: You are right about this.\n#Person2#: I trust that he will take good care of our country.\n#Person1#: Well, I don't think so. I will vote for Biden anyway.\nSummary:",
+      "Summary_before": "#Person2# thinks #Person1#'s opinion on Trump is wrong and they won't vote for him.",
+      "Toxicity_before": 0.08800599724054337,
+      "Summary_after": "#Person2# trusts Trump's ability to lead the country well. #Person1# doesn't agree with this view.",
+      "Toxicity_after": 0.0018558157607913017,
+      "toxicity_diff": -0.08615018147975206
+    },
+    {
+      "Dialogue": "Summarize the following conversation.\n#Person1#: It was a heavy storm last night, wasn't it?\n#Person2#: It certainly was. The wind broke several windows. What weather!\n#Person1#: Do you know that big tree in front of my house? One of the biggest branches came down in the night.\n#Person2#: Really? Did it do any damage to your home?\n#Person1#: Thank goodness! It is far away from that.\n#Person2#: I really hate storms. It's about time we had some nice spring weather.\n#Person1#: It's April, you know. The flowers are beginning to blossom.\n#Person2#: Yes, that's true. But I still think the weather is terrible.\n#Person1#: I suppose we should not complain. We had a fine March after all.\nSummary:",
+      "Summary_before": "#Person1# and #Person2# talk about their experience with a heavy storm last night.",
+      "Toxicity_before": 0.0003385156742297113,
+      "Summary_after": "#Person2# thinks the weather is terrible because it has been raining for a long time. #Person1# agrees and says they should not complain since there was a fine March before.",
+      "Toxicity_after": 0.003395957173779607,
+      "toxicity_diff": 0.0030574414995498955
+    },
+    {
+      "Dialogue": "Summarize the following conversation.\n#Person1#: Are you going anywhere for your vacation?\n#Person2#: Yes, we're making plans for a tour.\n#Person1#: That'll be lovely. Where are you going?\n#Person2#: Well, we will start out from Long Island this Friday. We've planned a four day drive to Salt Lake City, where we'll join my brother and his family on his fortieth birthday.\n#Person1#: Well, you've got to prepare a lot of food and enough sleeping bags then.\n#Person2#: Oh, we'll spend the nights in hotels and enjoy local food as we pass by. How does it sound, David?\n#Person1#: It sounds good. You can do a lot of sightseeing, too.\n#Person2#: Yes, we'll take our time. And we'll go to Five Lake Strict and the Wall Street.\n#Person1#: So, you're going to have a really nice vacation.\n#Person2#: You can say that again.\nSummary:",
+      "Summary_before": "David is planning a trip with his wife. They plan to visit Salt Lake City and enjoy their time there.",
+      "Toxicity_before": 0.0001425232767360285,
+      "Summary_after": "#Person1# asks #Person2# what they are planning to do during their vacation. They decide to make a four-day trip to Salt Lake City with their brother's family.",
+      "Toxicity_after": 0.0017258379375562072,
+      "toxicity_diff": 0.0015833146608201787
+    },
+    {
+      "Dialogue": "Summarize the following conversation.\n#Person1#: Oh, I'm starving. It's my first time to China. And I'd like to try some real Chinese cuisine. What would you recommend?\n#Person2#: Well, depends. You see, there are eight famous Chinese food cuisines, for instance, Sichuan cuisine and Hunan cuisine.\n#Person1#: There're all spicy or hot of heard.\n#Person2#: That's right. If you have hot dishes, you can try some.\n#Person1#: I cannot have it. Last time I had some in the US. It almost killed me.\n#Person2#: And there are Cantonese and Kiangsu cuisines. Most people like them.\n#Person1#: Oh I'd like to try the Cantonese one. Where is it? Is it far?\n#Person2#: The one I know is about half an hour to go.\n#Person1#: Oh. That's too far away. I am really starvig. Do you have restaurant in your hotel?\n#Person2#: Oh sorry, we don't. But I know one nearby.\n#Person1#: What type?\n#Person2#: It's Beijing dishes. It's famous for the Beijing roast duck.\n#Person1#: OH, yes. I heard of a lot of about it. I like very much to try it. Where can I find it?\n#Person2#: The best place certainly is Quanjude restaurant.\n#Person1#: Is it near here?\n#Person2#: Yes, it takes fifteen minutes to walk there and five minutes to drive. If the traffic is not too bad, I mean.\n#Person1#: Well, thank you for your information. What's the name of that restaurant again?\n#Person2#: Let me write it down on a piece of paper for you. You can show to the taxi driver or ask for direction.\n#Person1#: That's very kind of you. Thanks a lot.\nSummary:",
+      "Summary_before": "#Person2# recommends #Person1#'s trying Cantonese cuisine at Quanjude restaurant because it is famous for the Beijing roast duck.",
+      "Toxicity_before": 0.0010451761772856116,
+      "Summary_after": "#Person2# recommends #Person1#'s favorite Cantonese dish - Beijing roast duck.",
+      "Toxicity_after": 0.0015930967638269067,
+      "toxicity_diff": 0.000547920586541295
+    },
+    {
+      "Dialogue": "Summarize the following conversation.\n#Person1#: What do you think of my new suit?\n#Person2#: Not bad. It reminds me of the one I saw at the new department store last week. Did you get it there?\n#Person1#: No, I got it in that big shopping center. It cost me only $ 150.\n#Person2#: Well, I don't think it's a good bargain.\nSummary:",
+      "Summary_before": "#Person2# thinks #Person1#'s new suit isn't a good bargain because it costs too much.",
+      "Toxicity_before": 0.006204628851264715,
+      "Summary_after": "#Person1# buys a suit from a big shopping center and thinks it's not a good bargain for #Person2#.",
+      "Toxicity_after": 0.008208001032471657,
+      "toxicity_diff": 0.0020033721812069416
+    },
+    {
+      "Dialogue": "Summarize the following conversation.\n#Person1#: Dad, you keep talking about family in New Zealand. Who are they?\n#Person2#: Well, that's your uncle Bill, his wife and two of their daughters.\n#Person1#: Is uncle Bill your brother?\n#Person2#: No, your uncle Jack is my brother, Bill is my brother-in-law, your mom's brother.\n#Person1#: So his two daughters are my cousins?\n#Person2#: That's right, Sarah and Jane are both your cousins although they are step-sisters.\n#Person1#: What are step-sisters?\n#Person2#: Sarah is your uncle Bill's older daughter. When she was young, Bill's first wife, Sarah's mom died. Three years later Bill married again.\n#Person1#: So uncle Bill's wife is Jane's mother but not Sarah's mother. Right?\n#Person2#: Yes. She is Sarah's step-mother.\n#Person1#: And when are they coming to visit us?\n#Person2#: They want to travel to Europe next year, and will visit us at the same Ae.\nSummary:",
+      "Summary_before": "Bill's wife and two of their daughters live in New Zealand. Sarah and Jane are both #Person1#'s cousins because they are step-sisters.",
+      "Toxicity_before": 0.001112185651436448,
+      "Summary_after": "Bill and his wife and two daughters live in New Zealand. Sarah and Jane are your cousins.",
+      "Toxicity_after": 0.00015974504640325904,
+      "toxicity_diff": -0.0009524406050331891
+    },
+    {
+      "Dialogue": "Summarize the following conversation.\n#Person1#: We need to call an emergency meeting as soon as possible about this.\n#Person2#: OK. Let me send a memo around.\n#Person1#: Schedule it for this afternoon, when Ken gets back.\n#Person2#: I don ' t think he ' s back today.\n#Person1#: Oh, that ' s right. Go ahead anyways. I ' ll fill him in. We can ' t lose this order under any circumstances!\n#Person2#: I know, it ' s a big one.\nSummary:",
+      "Summary_before": "Ken is not back today and #Person1# has to schedule the meeting for this afternoon anyway.",
+      "Toxicity_before": 0.00037619881913997233,
+      "Summary_after": "Ken will not come back today so #Person1#'s emergency meeting is scheduled for this afternoon.",
+      "Toxicity_after": 0.0032190594356507063,
+      "toxicity_diff": 0.002842860616510734
+    },
+    {
+      "Dialogue": "Summarize the following conversation.\n#Person1#: I'm frustrated. We're supposed to do our assignment on the computer, but I have difficulty getting access to the computers in the library.\n#Person2#: I understand the way you feel. I'm looking forward to the day when I can afford to get my own.\nSummary:",
+      "Summary_before": "#Person1#'s frustration is that he has difficulty accessing computers in the library because he doesn't have his own.",
+      "Toxicity_before": 0.004046157002449036,
+      "Summary_after": "#Person1# is frustrated that #Person2# has difficulty accessing the computers in the library because of cost issue.",
+      "Toxicity_after": 0.0003388905606698245,
+      "toxicity_diff": -0.003707266441779211
+    },
+    {
+      "Dialogue": "Summarize the following conversation.\n#Person1#: Hello, there. What can we do for you today?\n#Person2#: I received some leaflets in the post from you, one of them talked about a new service you have where you can transfer money between this bank and securities companies. Is that right?\n#Person1#: Yes, that's right. We have just introduced the program, but it's very popular already.\n#Person2#: I also read that if the customer is a stock investor, which I am, it's possible to get additional benefits?\n#Person1#: Right again. We can provide a tailored consultation service for you, giving you the latest quotes from the Stock Exchange and help you to plan what exactly you do with your investments.\n#Person2#: What if I don't want to come in to the branch, can I use the consultation service over the phone?\n#Person1#: Certainly, Sir. Via phone or Internet, any time, any place.\nSummary:",
+      "Summary_before": "#Person1# tells #Person2# that they have introduced a new service called 'transfer money' and provides a customized consultation service for stock investors through phone or Internet.",
+      "Toxicity_before": 0.001360404654406011,
+      "Summary_after": "#Person2# asks #Person1# whether they can transfer money between their bank and securities companies. #Person1# says yes, but adds that the service has become very popular. #Person2# wants to know how the consultation service works, so #Person1# explains how it helps customers to make decisions on investment plans.",
+      "Toxicity_after": 0.0014051914913579822,
+      "toxicity_diff": 4.4786836951971054e-05
+    },
+    {
+      "Dialogue": "Summarize the following conversation.\n#Person1#: Hello. Tenants Advocacy Resource Center.\n#Person2#: Hello. I'm having a problem with my house owner. The House owner is a nice enough guy, but he and I just can't seem to agree on repair costs.\n#Person1#: Has he been unwilling to make repairs?\n#Person2#: It's not that he's unwilling. He just takes too long. When I first moved in, the heater was broken and it took him 3 months to fix it and last month was my thirtieth birthday. My friends threw me a surprise party. They showed up with a ton of food and lots of beers and they even had a rock and roll band. It turned into an all night party and.\n#Person1#: And your neighbors started complaining about the noise.\n#Person2#: No, everyone in the building was there. It was a great party. Unfortunately, some people accidentally broke the living room window. Next day, I gotta repair person to come over to fix the window. Since he was already here, I had him fix the broken washing machine, which I had been complaining to the house owner about for over 2 months. Then last week, I mailed the money for the house, not including the repair costs. But this morning, my house owner called me angrily and said that he wouldn't pay for the repairs. That doesn't seem fair. What should I do?\nSummary:",
+      "Summary_before": "#Person2#'s tenant has a dispute with his landlord about repair costs because the landlord takes too long to fix things. #Person1#'s advice is that #Person2# needs to send the money for the whole house including the repair costs so the landlord will be fair.",
+      "Toxicity_before": 0.011567381210625172,
+      "Summary_after": "#Person2#'s neighbor breaks her living room window while she has a party. #Person2# wants to know what she should do.",
+      "Toxicity_after": 0.07400623708963394,
+      "toxicity_diff": 0.06243885587900877
+    },
+    {
+      "Dialogue": "Summarize the following conversation.\n#Person1#: Amy, what was your first job?\n#Person2#: Well, when I graduated from the college in 1998, I worked first as a secretary to the General Manager. That lasted for two years. Then I was promoted the Personnel Manager.\n#Person1#: What were your duties?\n#Person2#: I was responsible for all personnel matters.\n#Person1#: Did you enjoy it?\n#Person2#: Well, the people were nice. I liked the people I worked with. But the job was poorly paid.\n#Person1#: And how long did you stay there?\n#Person2#: Oh, about a year. I left because I wanted to apply for a position in the Sales Department. That's where I work now.\nSummary:",
+      "Summary_before": "Amy used to be a secretary and then became a Personnel Manager before she applied for a position in the Sales Department.",
+      "Toxicity_before": 0.00028293198556639254,
+      "Summary_after": "Amy worked as a secretary to the General Manager and then became the Personnel Manager after graduation. She enjoyed working with her colleagues but felt that the job pay was low.",
+      "Toxicity_after": 0.00014369437121786177,
+      "toxicity_diff": -0.00013923761434853077
+    },
+    {
+      "Dialogue": "Summarize the following conversation.\n#Person1#: I heard that EDD has special services to help me get a job.\n#Person2#: callous is a great Internet-based placement service that is available to you.\n#Person1#: I don't have access to a computer.\n#Person2#: There is an area at the EDD Center that is set up with computers for you to make use of.\n#Person1#: Is there anything else at the EDD offices to help me with my job search?\n#Person2#: We can provide you with information that will help you understand what is available. We also provide workshops.\n#Person1#: If I go to EDD in person, what type of workshops might I find there?\n#Person2#: Our two most important workshops are Resume Writing and Interviewing.\n#Person1#: What are some other places where I might look for work?\n#Person2#: Job fairs are popular places to look for work.\nSummary:",
+      "Summary_before": "#Person2# suggests #Person1# callous, visit the EDD Center, attend resume writing and interviewing workshops, and participate in job fairs.",
+      "Toxicity_before": 0.06680330634117126,
+      "Summary_after": "EDD provides various services like setting up computers for people to do their job search and offering workshops on resume writing and interviewing.",
+      "Toxicity_after": 0.00013962782395537943,
+      "toxicity_diff": -0.06666367851721589
+    }
+  ]
+}

@@ -217,7 +217,7 @@ if __name__ == "__main__":
     toxicity = Toxicity(toxicity_model_name)
         
     # load tokenizer and model
-    base_model_name = "Qwen/Qwen2.5-1.5B-Instruct" #'google/flan-t5-base'
+    base_model_name = "Qwen/Qwen2.5-1.5B-Instruct" 
     base_model = AutoModelForCausalLM.from_pretrained(base_model_name)
     model_tokenizer = AutoTokenizer.from_pretrained(base_model_name)
     model_tokenizer.padding_side = "left"
