@@ -13,13 +13,31 @@ import pandas as pd
 import numpy as np
 import json
 from rouge_score import rouge_scorer
+import gc
+from itertools import product
 
 
-# 全局变量要写在这里
 steps = -1
-epoch = 1 # to be furthur tested on epoch = 2,3
-lr = 1e-5
+lr_list = [5e-6, 1e-5]
+epoch_list = [1,2,3]
 generations = 4
+
+
+def load_model(base_model_name, adaptor_path):
+
+    base_model = AutoModelForCausalLM.from_pretrained(
+        base_model_name,
+        torch_dtype=torch.float16,
+        attn_implementation="sdpa"
+    )
+
+    model = PeftModel.from_pretrained(
+        base_model,
+        adaptor_path,
+        is_trainable=True
+    )
+
+    return model
 
 
 def prepare_prompt(example):
@@ -90,6 +108,7 @@ class Toxicity:
         toxicity_scores = probabilities[:, self.hate_index]
         return toxicity_scores.float().cpu().tolist()
 
+
 def print_number_of_trainable_model_parameters(model):
     trainable_model_params = 0
     all_model_params = 0
@@ -130,6 +149,7 @@ def grpo(model,
         num_generations = generations,
         max_completion_length = 120
     )
+
     trainer = GRPOTrainer(
         model = model,
         reward_funcs = reward_funcs,
@@ -180,8 +200,7 @@ def evaluate_toxicity(model,
 
         reference_summary = example["summary"]
 
-        rouge = score.score(summary, 
-                            reference_summary)
+        rouge = score.score(reference_summary,summary)
         
         results.append({
             "ID": i,
@@ -199,8 +218,14 @@ def evaluate_toxicity(model,
     return results
 
 
-if __name__ == "__main__":
+# Delete 
+def cleanup():
+    gc.collect()
+    if torch.backends.mps.is_available():
+        torch.mps.empty_cache()
 
+
+if __name__ == "__main__":
     dataset = load_dataset("knkarthick/dialogsum")
     dataset = DatasetDict({
         "train":dataset["train"].shuffle(seed=42).select(range(500)),
@@ -218,26 +243,25 @@ if __name__ == "__main__":
         
     # load tokenizer and model
     base_model_name = "Qwen/Qwen2.5-1.5B-Instruct" 
-    base_model = AutoModelForCausalLM.from_pretrained(base_model_name)
     model_tokenizer = AutoTokenizer.from_pretrained(base_model_name)
     model_tokenizer.padding_side = "left"
 
     if model_tokenizer.pad_token is None:
         model_tokenizer.pad_token = model_tokenizer.eos_token
+
     adaptor_path = "/Users/xiaoningzhu/Documents/AI/course_2/project/runs/peft-dialogue-summary-checkpoint-local-qwen2.5"
-    model = PeftModel.from_pretrained(
-        base_model,
-        adaptor_path,
-        is_trainable=True
+    # =====================================================
+    # baseline
+    # =====================================================
+    baselinemodel = load_model(
+        base_model_name,
+        adaptor_path
     )
 
-    print(print_number_of_trainable_model_parameters(model))
+    print(print_number_of_trainable_model_parameters(baselinemodel))
 
-    output_path = f"./grpo_output/qwen-rl-{str(int(time.time()))}"
-    os.makedirs(output_path, exist_ok=True)
-    
     metrics_before = evaluate_toxicity(
-        model=model,
+        model=baselinemodel,
         tokenizer=model_tokenizer,
         toxicity_evaluator=toxicity.evaluate,
         dataset=datasets
@@ -253,64 +277,96 @@ if __name__ == "__main__":
         }
     )
 
+    del baselinemodel
+    cleanup()
 
-    trainer = grpo(
-        model=model,
-        dataset=datasets,
-        tokenizer=model_tokenizer,
-        reward_funcs=toxicity.reward,
-        output_path=output_path,
-        step=steps,
-        epoch=epoch,
-        lr=lr,
-        generations=generations,
-    )
+    # =====================================================
+# parameter sweep
+# =====================================================
 
-    metrics_after = evaluate_toxicity(
-        model=trainer.model,
-        tokenizer=model_tokenizer,
-        toxicity_evaluator=toxicity.evaluate,
-        dataset=datasets
-    )
 
-    metrics_after = metrics_after.rename(
-        columns={
-            "Summary": "Summary_after",
-            "Toxicity": "Toxicity_after",
-            "Rouge1": "Rouge1_after",
-            "Rouge2": "Rouge2_after",
-            "RougeL": "RougeL_after",
-        }
-    )
 
-    results = pd.merge(metrics_before, metrics_after,drop(columns=["dialogue", "reference_summary"]), on=["ID"])
-    results["toxicity_diff"] = (
-        results["Toxicity_after"]
-        - results["Toxicity_before"]
-    )
+    for lr, epoch in product(lr_list, epoch_list):
+        print(f"\nRunning: lr={lr}, epoch={epoch}")
+        
 
-    completion_path = (f"{output_path}/completion_results.json")
+        model = load_model(base_model_name, adaptor_path)
 
-    run_info = {
-        "base_model": base_model_name,
-        "adapter_path": adaptor_path,
-        "reward_model": toxicity_model_name,
-        "epoch": epoch,
-        "learning_rate": lr,
-        "num_generations": generations,
-        "train_samples": len(datasets["train"]),
-        "test_samples": len(datasets["test"]),
-    }
-
-    output = {
-        "parameters": run_info,
-        "results": results.to_dict(orient="records"),
-    }
-
-    with open(completion_path, "w", encoding="utf-8") as f:
-        json.dump(
-            output,
-            f,
-            ensure_ascii=False,
-            indent=2,
+        output_path = f"./grpo_output/qwen-rl-{str(int(time.time()))}"
+        os.makedirs(output_path, exist_ok=True)
+            
+        trainer = grpo(
+            model=model,
+            dataset=datasets,
+            tokenizer=model_tokenizer,
+            reward_funcs=toxicity.reward,
+            output_path=output_path,
+            step=steps,
+            epoch=epoch,
+            lr=lr,
+            generations=generations,
         )
+
+        metrics_after = evaluate_toxicity(
+            model=trainer.model,
+            tokenizer=model_tokenizer,
+            toxicity_evaluator=toxicity.evaluate,
+            dataset=datasets
+        )
+
+        metrics_after = metrics_after.rename(
+            columns={
+                "Summary": "Summary_after",
+                "Toxicity": "Toxicity_after",
+                "Rouge1": "Rouge1_after",
+                "Rouge2": "Rouge2_after",
+                "RougeL": "RougeL_after",
+            }
+        )
+
+        results = pd.merge(
+            metrics_before,
+            metrics_after[
+                [
+                    "ID",
+                    "Summary_after",
+                    "Toxicity_after",
+                    "Rouge1_after",
+                    "Rouge2_after",
+                    "RougeL_after",
+                ]
+            ],
+            on="ID"
+        )
+
+        results["toxicity_diff"] = (results["Toxicity_after"] - results["Toxicity_before"])
+
+        completion_path = (f"{output_path}/completion_results.json")
+
+        run_info = {
+            "base_model": base_model_name,
+            "adapter_path": adaptor_path,
+            "reward_model": toxicity_model_name,
+            "epoch": epoch,
+            "learning_rate": lr,
+            "num_generations": generations,
+            "train_samples": len(datasets["train"]),
+            "test_samples": len(datasets["test"]),
+        }
+
+        output = {
+            "parameters": run_info,
+            "results": results.to_dict(orient="records"),
+        }
+
+        with open(completion_path, "w", encoding="utf-8") as f:
+            json.dump(
+                output,
+                f,
+                ensure_ascii=False,
+                indent=2,
+            )
+
+        del trainer
+        del model
+        cleanup()
