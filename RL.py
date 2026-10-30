@@ -18,9 +18,10 @@ from itertools import product
 
 
 steps = -1
-lr_list = [1e-5, 3e-5]
-epoch_list = [2,3]
+lr_list = [5e-6]
+epoch_list = [1,2]
 generations = 4
+rouge_weight = 2.0
 
 
 def load_model(base_model_name, adaptor_path):
@@ -62,11 +63,12 @@ def prepare_prompt(example):
 
 
 class Toxicity:
-    def __init__(self, model_name, device="cpu"):
+    def __init__(self, model_name, rouge_weight, device="cpu"):
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForSequenceClassification.from_pretrained(model_name).to(device)
         self.model.eval()
         self.device = device
+        self.rouge_weight = rouge_weight
 
         self.nothate_index = next(
             i for i, label in self.model.config.id2label.items()
@@ -78,22 +80,11 @@ class Toxicity:
             if label.lower() == "hate"
         )
 
-    def reward(self, completions, **kwargs):
-        texts = [completion[0]["content"] for completion in completions]
-        inputs = self.tokenizer(
-            texts,
-            padding=True,
-            truncation=True,
-            return_tensors="pt"
-        ).to(self.device)
+        self.rouge_scorer = rouge_scorer.RougeScorer(
+            ["rougeL"], use_stemmer=True
+        )
 
-        with torch.inference_mode():
-            logits = self.model(**inputs).logits
-
-        nohate_reward = logits[:, self.nothate_index] 
-        return nohate_reward.float().cpu().tolist()
-    
-    def evaluate(self, completions):
+    def _get_logits(self, completions):
         inputs = self.tokenizer(
             completions,
             padding=True,
@@ -102,8 +93,39 @@ class Toxicity:
         ).to(self.device)
 
         with torch.inference_mode():
-            logits = self.model(**inputs).logits
+            return self.model(**inputs).logits
+    
+    def calculate_margin(self, completions):
+        logits = self._get_logits(completions)
 
+        margin = (
+            logits[:, self.nothate_index]
+            - logits[:, self.hate_index]
+        )
+        return margin.float().cpu().tolist()
+
+    def reward(self, completions, summary, **kwargs):
+        texts = [completion[0]["content"] for completion in completions]
+
+        nohate_rewards = self.calculate_margin(texts)
+
+        rewards = []
+        for text, reference, nohate_reward in zip(
+            texts, summary, nohate_rewards
+        ):
+            rougeL = self.rouge_scorer.score(
+                reference, text
+            )["rougeL"].fmeasure
+
+            total_reward = (
+                nohate_reward
+                + self.rouge_weight * rougeL
+            )
+            rewards.append(float(total_reward))
+        return rewards
+
+    def evaluate(self, completions):
+        logits = self._get_logits(completions)
         probabilities = torch.softmax(logits, dim=-1)
         toxicity_scores = probabilities[:, self.hate_index]
         return toxicity_scores.float().cpu().tolist()
@@ -131,6 +153,9 @@ def grpo(model,
          ):
     grpo_config = GRPOConfig(
         output_dir = output_path,
+        remove_unused_columns=False,
+        seed=42,
+        data_seed=42,  
 
         # training hyperparameters
         max_steps = step,
@@ -148,6 +173,7 @@ def grpo(model,
         # generate
         num_generations = generations,
         max_completion_length = 120
+
     )
 
     trainer = GRPOTrainer(
@@ -164,10 +190,12 @@ def grpo(model,
     return trainer
 
 
-def evaluate_toxicity(model, 
-                      tokenizer, 
-                      toxicity_evaluator, 
-                      dataset):
+def evaluate_toxicity(
+        model,
+        tokenizer,
+        toxicity_model,
+        dataset,
+    ):
     model.eval()
     device = next(model.parameters()).device
 
@@ -192,16 +220,21 @@ def evaluate_toxicity(model,
                     do_sample=False
                 )
             
-        # print(output)
         completion = output[0][prompt_len:]
         summary = tokenizer.decode(completion, skip_special_tokens=True)
-        # print(summary)
-        toxicity = toxicity_evaluator([summary])[0]
+
+        toxicity = toxicity_model.evaluate([summary])[0]
+        logit_margin = toxicity_model.calculate_margin([summary])[0]
 
         reference_summary = example["summary"]
 
         rouge = score.score(reference_summary,summary)
         
+        reward = (
+            logit_margin
+            + toxicity_model.rouge_weight * rouge["rougeL"].fmeasure
+        )
+
         results.append({
             "ID": i,
             "Dialogue": example["dialogue"],
@@ -210,7 +243,9 @@ def evaluate_toxicity(model,
             "Toxicity": toxicity,
             "Rouge1": rouge["rouge1"].fmeasure,
             "Rouge2": rouge["rouge2"].fmeasure,
-            "RougeL": rouge["rougeL"].fmeasure
+            "RougeL": rouge["rougeL"].fmeasure,
+            "Logit_margin": logit_margin,
+            "Reward": reward
         })
 
     results = pd.DataFrame(results)
@@ -237,10 +272,6 @@ if __name__ == "__main__":
     datasets = datasets.select_columns(["prompt","dialogue","summary"])
     print(datasets)
 
-    # reward model
-    toxicity_model_name = "facebook/roberta-hate-speech-dynabench-r4-target"
-    toxicity = Toxicity(toxicity_model_name)
-        
     # load tokenizer and model
     base_model_name = "Qwen/Qwen2.5-1.5B-Instruct" 
     model_tokenizer = AutoTokenizer.from_pretrained(base_model_name)
@@ -261,10 +292,18 @@ if __name__ == "__main__":
 
     print(print_number_of_trainable_model_parameters(baselinemodel))
 
+    # reward model
+    toxicity_model_name = "facebook/roberta-hate-speech-dynabench-r4-target"
+    # toxicity = Toxicity(toxicity_model_name)
+    # Added an extra ROUGE-L as reward. 
+    # Reason: if not consider ROUGE, the model seems to have action like reward hacking, 
+    # the toxicity becomes lower, but the ROUGE also drop significantly. 
+    toxicity = Toxicity(toxicity_model_name, rouge_weight=rouge_weight)
+
     metrics_before = evaluate_toxicity(
         model=baselinemodel,
         tokenizer=model_tokenizer,
-        toxicity_evaluator=toxicity.evaluate,
+        toxicity_model=toxicity,
         dataset=datasets
     )
 
@@ -275,6 +314,8 @@ if __name__ == "__main__":
             "Rouge1": "Rouge1_before",
             "Rouge2": "Rouge2_before",
             "RougeL": "RougeL_before",
+            "Logit_margin": "Logit_margin_before",
+            "Reward": "Reward_before"
         }
     )
 
@@ -310,8 +351,8 @@ if __name__ == "__main__":
         metrics_after = evaluate_toxicity(
             model=trainer.model,
             tokenizer=model_tokenizer,
-            toxicity_evaluator=toxicity.evaluate,
-            dataset=datasets
+            toxicity_model=toxicity,
+            dataset=datasets,
         )
 
         metrics_after = metrics_after.rename(
@@ -321,6 +362,8 @@ if __name__ == "__main__":
                 "Rouge1": "Rouge1_after",
                 "Rouge2": "Rouge2_after",
                 "RougeL": "RougeL_after",
+                "Logit_margin": "Logit_margin_after",
+                "Reward": "Reward_after",
             }
         )
 
@@ -334,6 +377,8 @@ if __name__ == "__main__":
                     "Rouge1_after",
                     "Rouge2_after",
                     "RougeL_after",
+                    "Logit_margin_after",
+                    "Reward_after",
                 ]
             ],
             on="ID"
@@ -347,6 +392,8 @@ if __name__ == "__main__":
             "base_model": base_model_name,
             "adapter_path": adaptor_path,
             "reward_model": toxicity_model_name,
+            "rouge_weight": toxicity.rouge_weight,
+            "reward_formula": "logit_margin + rouge_weight * rougeL",
             "epoch": epoch,
             "learning_rate": lr,
             "num_generations": generations,
