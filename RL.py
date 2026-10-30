@@ -18,7 +18,7 @@ from itertools import product
 
 
 steps = -1
-lr_list = [5e-6]
+lr_list = [2e-5]
 epoch_list = [1,2]
 generations = 4
 rouge_weight = 2.0
@@ -332,6 +332,11 @@ if __name__ == "__main__":
         
 
         model = load_model(base_model_name, adaptor_path)
+        weights_before = {
+            name: param.detach().float().cpu().clone()
+            for name, param in model.named_parameters()
+            if param.requires_grad
+        }
 
         output_path = f"./grpo_output/qwen-rl-{str(int(time.time()))}"
         os.makedirs(output_path, exist_ok=True)
@@ -347,6 +352,17 @@ if __name__ == "__main__":
             lr=lr,
             generations=generations,
         )
+
+        changes = []
+        for name, param in trainer.model.named_parameters():
+            if name in weights_before:
+                before = weights_before[name]
+                after = param.detach().float().cpu()
+                changes.append((after - before).abs().mean().item())
+        print("Mean LoRA weight change:", np.mean(changes))
+        print("Max layer mean change:", np.max(changes))
+        del weights_before
+
 
         metrics_after = evaluate_toxicity(
             model=trainer.model,
