@@ -18,8 +18,8 @@ from itertools import product
 
 
 steps = -1
-lr_list = [5e-6, 1e-5]
-epoch_list = [1,2,3]
+lr_list = [1e-5, 3e-5]
+epoch_list = [2,3]
 generations = 4
 
 
@@ -228,8 +228,8 @@ def cleanup():
 if __name__ == "__main__":
     dataset = load_dataset("knkarthick/dialogsum")
     dataset = DatasetDict({
-        "train":dataset["train"].shuffle(seed=42).select(range(500)),
-        "validation": dataset["validation"].shuffle(seed=42).select(range(50)),
+        "train":dataset["train"].shuffle(seed=42).select(range(250)),
+        # "validation": dataset["validation"].shuffle(seed=42).select(range(50)),
         # "validation": dataset["validation"].shuffle(seed=42).select(range(25)),  
         "test": dataset["test"].filter(lambda example, index: index % 50 == 0,with_indices=True)
     })
@@ -250,6 +250,7 @@ if __name__ == "__main__":
         model_tokenizer.pad_token = model_tokenizer.eos_token
 
     adaptor_path = "/Users/xiaoningzhu/Documents/AI/course_2/project/runs/peft-dialogue-summary-checkpoint-local-qwen2.5"
+    
     # =====================================================
     # baseline
     # =====================================================
@@ -280,11 +281,10 @@ if __name__ == "__main__":
     del baselinemodel
     cleanup()
 
-    # =====================================================
-# parameter sweep
+
 # =====================================================
-
-
+# parameter list
+# =====================================================
 
     for lr, epoch in product(lr_list, epoch_list):
         print(f"\nRunning: lr={lr}, epoch={epoch}")
